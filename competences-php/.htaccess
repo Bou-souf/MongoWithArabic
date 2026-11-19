@@ -1,0 +1,12 @@
+# Si le dossier racine de l'hébergement pointe sur ce dossier (et non sur public/),
+# toutes les requêtes sont redirigées vers public/ : config.php, vendor/, storage/
+# ne sont jamais accessibles depuis le web.
+Options -Indexes
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteCond %{REQUEST_URI} !^/public/
+    RewriteRule ^(.*)$ public/$1 [L]
+</IfModule>
+<IfModule !mod_rewrite.c>
+    Require all denied
+</IfModule>

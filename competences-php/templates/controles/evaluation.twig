@@ -1,0 +1,115 @@
+{% extends 'base.twig' %}
+{% block contenu %}
+{% set comps = controle.competences %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+  <div>
+    <h1 class="h3 mb-0">Évaluation des compétences</h1>
+    <span class="text-muted"><a href="/controles/{{ controle.id }}">{{ controle.titre }}</a> · {{ controle.classe_nom }} · {{ controle.matiere }}</span>
+  </div>
+  <a class="btn btn-outline-secondary" href="/controles/{{ controle.id }}/competences"><i class="bi bi-list-check"></i> Modifier les compétences</a>
+</div>
+{% if lignes is empty %}
+  <div class="alert alert-warning">Aucun élève pour ce contrôle. <a href="/controles/{{ controle.id }}">Importez le fichier Excel des notes</a> d'abord.</div>
+{% elseif comps is empty %}
+  <div class="alert alert-warning">Aucune compétence définie. <a href="/controles/{{ controle.id }}/competences">Définissez les compétences</a> d'abord.</div>
+{% else %}
+<div class="alert alert-light border small">
+  <i class="bi bi-info-circle"></i> Cochez les compétences <strong>maîtrisées</strong> par chaque élève (une case non cochée = lacune).
+  Ajoutez dans « Autres lacunes » celles que le système n'a pas proposées (séparées par des virgules).
+  {% if suivis is not empty %}<br><i class="bi bi-arrow-repeat"></i> Les lignes <span class="badge bg-warning text-dark">suivi</span> listent les lacunes des contrôles précédents : indiquez si elles sont <strong>remédiées</strong>. Une lacune non remédiée déclenche une alerte.{% endif %}
+</div>
+<form method="post" action="/controles/{{ controle.id }}/evaluation" id="formEval">
+  {% include 'partials/csrf.twig' %}
+  <div class="card"><div class="card-body p-0">
+  <div class="table-responsive" style="max-height:75vh">
+  <table class="table table-sm table-bordered grille table-sticky mb-0">
+    <thead>
+      <tr>
+        <th class="sticky-col" style="min-width:180px">Élève</th>
+        <th style="width:70px">Note</th>
+        {% for c in comps %}<th class="comp text-center" title="{{ c }} — {{ (questions_par_comp[c] ?? [])|join(', ') }}">{{ c }}</th>{% endfor %}
+        <th class="text-center small" style="width:60px">Tout</th>
+        <th style="min-width:220px">Autres lacunes</th>
+      </tr>
+      <tr class="table-light">
+        <th class="sticky-col small text-muted">Cocher la colonne</th><th></th>
+        {% for c in comps %}<th class="text-center"><input class="form-check-input col-toggle" type="checkbox" data-col="{{ loop.index0 }}" title="Tous les élèves"></th>{% endfor %}
+        <th></th><th></th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for l in lignes %}{% set id = l.eleve_id %}{% set anciens = suivis[id] ?? [] %}
+      <tr data-eleve="{{ id }}" class="ligne-eleve {{ l.evaluee ? '' : 'table-warning-subtle' }}">
+        <td class="sticky-col">
+          <a href="/eleves/{{ id }}" target="_blank">{{ l.nom }} {{ l.prenom }}</a>
+          <input type="hidden" name="eval[{{ id }}][touche]" value="{{ l.evaluee ? '1' : '0' }}" class="touche">
+          {% if not l.evaluee %}<span class="badge bg-secondary-subtle text-secondary-emphasis ms-1 a-evaluer">à évaluer</span>{% endif %}
+        </td>
+        <td><input class="form-control form-control-sm" name="eval[{{ id }}][note]" value="{{ l.note is null ? '' : l.note }}" inputmode="decimal"></td>
+        {% for c in comps %}
+          <td class="text-center"><input class="form-check-input cb" type="checkbox" name="eval[{{ id }}][m][]" value="{{ loop.index0 }}" data-col="{{ loop.index0 }}" {{ c in l.maitrisees ? 'checked' }}></td>
+        {% endfor %}
+        <td class="text-center"><input class="form-check-input row-toggle" type="checkbox" title="Tout maîtrisé"></td>
+        <td><input class="form-control form-control-sm" name="eval[{{ id }}][libres]" value="{{ l.lacunes_libres|join(', ') }}" list="lacunesLibres" placeholder="ex. Tableau de proportionnalité"></td>
+      </tr>
+      {% if anciens is not empty %}
+      <tr class="table-warning">
+        <td colspan="{{ comps|length + 4 }}" class="small">
+          <span class="badge bg-warning text-dark me-1">suivi</span> Lacunes antérieures de {{ l.prenom ?: l.nom }} :
+          {% for lac in anciens %}
+            <span class="d-inline-flex align-items-center border rounded px-2 py-1 me-2 mb-1 bg-white suivi" data-col="{{ lac.col }}" data-eleve="{{ id }}">
+              <span class="me-2" title="Depuis : {{ lac.origine_titre }}"><strong>{{ lac.competence }}</strong>
+                {% if lac.echecs %}<i class="bi bi-exclamation-triangle-fill text-danger" title="Déjà signalée non remédiée {{ lac.echecs }} fois"></i>{% endif %}</span>
+              <label class="me-2"><input type="radio" class="form-check-input" name="suivi[{{ lac.id }}]" value="oui" {{ lac.reponse == 'oui' ? 'checked' }}> remédiée</label>
+              <label class="me-2"><input type="radio" class="form-check-input" name="suivi[{{ lac.id }}]" value="non" {{ lac.reponse == 'non' ? 'checked' }}> non remédiée</label>
+              <label class="text-muted"><input type="radio" class="form-check-input" name="suivi[{{ lac.id }}]" value="" {{ lac.reponse == '' ? 'checked' }}> pas évaluée</label>
+            </span>
+          {% endfor %}
+        </td>
+      </tr>
+      {% endif %}
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  </div></div>
+  <datalist id="lacunesLibres">{% for x in libres %}<option value="{{ x }}">{% endfor %}</datalist>
+  <div class="mt-3 d-flex gap-2">
+    <button class="btn btn-outline-primary" name="suite" value="evaluation"><i class="bi bi-save"></i> Enregistrer</button>
+    <button class="btn btn-primary" name="suite" value="dashboard">Enregistrer et voir le tableau de bord <i class="bi bi-arrow-right"></i></button>
+  </div>
+  <p class="small text-muted mt-2">Seules les lignes modifiées (ou déjà évaluées) sont enregistrées : les élèves « à évaluer » non modifiés ne reçoivent pas de lacunes.</p>
+</form>
+{% endif %}
+{% endblock %}
+{% block scripts %}
+<script>
+  const form = document.getElementById('formEval');
+  if (form) {
+    const toucher = tr => {
+      const t = tr.querySelector('.touche'); if (t) t.value = '1';
+      const b = tr.querySelector('.a-evaluer'); if (b) b.remove();
+      tr.classList.remove('table-warning-subtle');
+    };
+    // Propose "remédiée / non remédiée" quand la compétence est réévaluée dans ce contrôle
+    const syncSuivi = tr => {
+      document.querySelectorAll(`.suivi[data-eleve="${tr.dataset.eleve}"]`).forEach(s => {
+        if (s.dataset.col === '-1' || s.dataset.manuel) return;
+        const cb = tr.querySelector(`.cb[data-col="${s.dataset.col}"]`);
+        s.querySelectorAll('input[type=radio]')[cb.checked ? 0 : 1].checked = true;
+      });
+    };
+    form.addEventListener('change', e => {
+      const tr = e.target.closest('tr.ligne-eleve');
+      if (e.target.classList.contains('row-toggle')) tr.querySelectorAll('.cb').forEach(cb => cb.checked = e.target.checked);
+      if (e.target.classList.contains('col-toggle')) {
+        document.querySelectorAll(`.cb[data-col="${e.target.dataset.col}"]`).forEach(cb => { cb.checked = e.target.checked; const r = cb.closest('tr'); toucher(r); syncSuivi(r); });
+        return;
+      }
+      if (e.target.type === 'radio') { e.target.closest('.suivi').dataset.manuel = '1'; return; }
+      if (tr) { toucher(tr); syncSuivi(tr); }
+    });
+    form.addEventListener('input', e => { const tr = e.target.closest('tr.ligne-eleve'); if (tr) toucher(tr); });
+  }
+</script>
+{% endblock %}

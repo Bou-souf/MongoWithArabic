@@ -1,0 +1,18 @@
+{% extends 'base.twig' %}
+{% block contenu %}
+<div class="row justify-content-center" style="margin-top:8vh">
+  <div class="col-sm-9 col-md-6 col-lg-5">
+    <div class="card shadow-sm"><div class="card-body p-4">
+      <h1 class="h4">Installation</h1>
+      <p class="text-muted small">La connexion à la base MySQL fonctionne. Les tables vont être créées ; choisissez le compte administrateur.</p>
+      <form method="post" action="/install">
+        {% include 'partials/csrf.twig' %}
+        <input class="form-control mb-2" name="nom" placeholder="Nom" value="Administrateur">
+        <input class="form-control mb-2" type="email" name="email" placeholder="Email" required>
+        <input class="form-control mb-3" type="password" name="password" placeholder="Mot de passe (8 caractères min.)" minlength="8" required>
+        <button class="btn btn-primary w-100">Installer</button>
+      </form>
+    </div></div>
+  </div>
+</div>
+{% endblock %}

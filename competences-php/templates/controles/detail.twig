@@ -1,0 +1,63 @@
+{% extends 'base.twig' %}
+{% block contenu %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+  <div>
+    <h1 class="h3 mb-0">{{ controle.titre }}</h1>
+    <span class="text-muted"><a href="/classes/{{ controle.classe_id }}">{{ controle.classe_nom }}</a> · {{ controle.matiere }} · {{ controle.date|date_fr }} · /{{ controle.note_sur|fmt }}</span>
+  </div>
+  <div class="d-flex flex-wrap gap-2">
+    {% if controle.fichier_pdf %}<a class="btn btn-outline-secondary" href="/controles/{{ controle.id }}/pdf" target="_blank"><i class="bi bi-file-earmark-pdf"></i> PDF</a>{% endif %}
+    <a class="btn btn-outline-secondary" href="/controles/{{ controle.id }}/competences"><i class="bi bi-list-check"></i> Compétences</a>
+    <a class="btn btn-primary" href="/controles/{{ controle.id }}/evaluation"><i class="bi bi-check2-square"></i> Évaluer</a>
+    <a class="btn btn-success" href="/controles/{{ controle.id }}/dashboard"><i class="bi bi-bar-chart"></i> Tableau de bord</a>
+  </div>
+</div>
+<div class="row g-3">
+  <div class="col-lg-5">
+    <div class="card mb-3"><div class="card-body">
+      <h2 class="h6">Compétences évaluées ({{ controle.competences|length }})
+        <span class="badge bg-light text-dark ms-1">{{ {'ia': 'analyse IA', 'regles': 'analyse par règles', 'manuel': 'saisie manuelle'}[controle.methode_analyse] }}</span></h2>
+      {% for q in controle.questions %}
+        <div class="mb-2"><strong>Q{{ q.numero }}</strong>{% if q.bareme %} <small class="text-muted">({{ q.bareme|fmt }} pt)</small>{% endif %} :
+          {% for c in q.competences %}<span class="badge bg-primary-subtle text-primary-emphasis me-1">{{ c }}</span>{% endfor %}</div>
+      {% endfor %}
+    </div></div>
+    <div class="card mb-3"><div class="card-body">
+      <h2 class="h6">Importer les notes (Excel / CSV)</h2>
+      <form method="post" action="/controles/{{ controle.id }}/import" enctype="multipart/form-data" class="d-flex gap-2">
+        {% include 'partials/csrf.twig' %}
+        <input class="form-control" type="file" name="excel" accept=".xlsx,.xls,.csv,.ods" required>
+        <button class="btn btn-outline-primary">Importer</button>
+      </form>
+      <small class="text-muted">Les élèves absents de la classe sont créés automatiquement ; les notes existantes sont mises à jour.</small>
+      <form method="post" action="/controles/{{ controle.id }}/ajouter-classe" class="mt-2">
+        {% include 'partials/csrf.twig' %}
+        <button class="btn btn-sm btn-link p-0">… ou ajouter tous les élèves de la classe sans note</button>
+      </form>
+    </div></div>
+    <form method="post" action="/controles/{{ controle.id }}/supprimer" onsubmit="return confirm('Supprimer ce contrôle, ses évaluations et les lacunes qui en sont issues ?')">
+      {% include 'partials/csrf.twig' %}<button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i> Supprimer le contrôle</button>
+    </form>
+  </div>
+  <div class="col-lg-7">
+    <div class="card"><div class="card-body">
+      <h2 class="h6">Élèves ({{ evals|length }})</h2>
+      {% if evals is empty %}<p class="text-muted mb-0">Importez le fichier Excel des notes pour charger la liste des élèves.</p>{% else %}
+      <div class="table-responsive"><table class="table table-sm align-middle mb-0">
+        <thead><tr><th>Élève</th><th>Note</th><th>Statut</th><th>Lacunes</th></tr></thead>
+        <tbody>
+        {% for e in evals %}
+          <tr>
+            <td><a href="/eleves/{{ e.eleve_id }}">{{ e.nom }} {{ e.prenom }}</a></td>
+            <td>{{ e.note|fmt }}</td>
+            <td>{{ e.evaluee ? '✅ évalué' : '⏳ à évaluer' }}</td>
+            <td>{% for l in e.non_maitrisees|merge(e.lacunes_libres) %}<span class="lacune-chip">{{ l }}</span>{% endfor %}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table></div>
+      {% endif %}
+    </div></div>
+  </div>
+</div>
+{% endblock %}
