@@ -1,0 +1,40 @@
+{% extends 'base.twig' %}
+{% block contenu %}
+<h1 class="h3 mb-3">Classes</h1>
+<div class="row g-3">
+  <div class="col-lg-8">
+    <div class="card"><div class="card-body">
+      {% if classes is empty %}<p class="text-muted mb-0">Aucune classe. Créez-en une à droite.</p>{% else %}
+      <div class="table-responsive"><table class="table align-middle mb-0">
+        <thead><tr><th>Classe</th><th>Niveau</th><th>Année</th><th>Élèves</th>{% if user.role == 'admin' %}<th>Professeur</th>{% endif %}<th></th></tr></thead>
+        <tbody>
+        {% for c in classes %}
+          <tr>
+            <td><a href="/classes/{{ c.id }}" class="fw-semibold">{{ c.nom }}</a></td>
+            <td>{{ c.niveau }}</td><td>{{ c.annee_scolaire }}</td><td>{{ c.effectif }}</td>
+            {% if user.role == 'admin' %}<td>{{ c.prof_nom }}</td>{% endif %}
+            <td class="text-end"><a class="btn btn-sm btn-outline-primary" href="/statistiques?classe={{ c.id }}"><i class="bi bi-graph-up"></i> Statistiques</a></td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table></div>
+      {% endif %}
+    </div></div>
+  </div>
+  <div class="col-lg-4">
+    <div class="card"><div class="card-body">
+      <h2 class="h5">Nouvelle classe</h2>
+      <form method="post" action="/classes">
+        {% include 'partials/csrf.twig' %}
+        <input class="form-control mb-2" name="nom" placeholder="Nom (ex. 3APIC-2)" required>
+        <input class="form-control mb-2" name="niveau" placeholder="Niveau (ex. 3e année collège)">
+        <input class="form-control mb-2" name="annee_scolaire" placeholder="Année scolaire (ex. 2026-2027)">
+        {% if user.role == 'admin' %}
+        <select class="form-select mb-2" name="prof">{% for p in profs %}<option value="{{ p.id }}">{{ p.nom }} ({{ p.role }})</option>{% endfor %}</select>
+        {% endif %}
+        <button class="btn btn-primary w-100">Créer</button>
+      </form>
+    </div></div>
+  </div>
+</div>
+{% endblock %}

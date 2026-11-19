@@ -1,0 +1,41 @@
+<%- include('../partials/header') %>
+<h1 class="h3 mb-3">Classes</h1>
+<div class="row g-3">
+  <div class="col-lg-8">
+    <div class="card"><div class="card-body">
+      <% if (!classes.length) { %><p class="text-muted mb-0">Aucune classe. Créez-en une à droite.</p><% } else { %>
+      <div class="table-responsive"><table class="table align-middle mb-0">
+        <thead><tr><th>Classe</th><th>Niveau</th><th>Année</th><th>Élèves</th><% if (user.role === 'admin') { %><th>Professeur</th><% } %><th></th></tr></thead>
+        <tbody>
+        <% for (const c of classes) { %>
+          <tr>
+            <td><a href="/classes/<%= c._id %>" class="fw-semibold"><%= c.nom %></a></td>
+            <td><%= c.niveau %></td><td><%= c.anneeScolaire %></td><td><%= effectifs[c._id] || 0 %></td>
+            <% if (user.role === 'admin') { %><td><%= c.prof ? c.prof.nom : '' %></td><% } %>
+            <td class="text-end"><a class="btn btn-sm btn-outline-primary" href="/statistiques?classe=<%= c._id %>"><i class="bi bi-graph-up"></i> Statistiques</a></td>
+          </tr>
+        <% } %>
+        </tbody>
+      </table></div>
+      <% } %>
+    </div></div>
+  </div>
+  <div class="col-lg-4">
+    <div class="card"><div class="card-body">
+      <h2 class="h5">Nouvelle classe</h2>
+      <form method="post" action="/classes">
+        <%- include('../partials/csrf') %>
+        <input class="form-control mb-2" name="nom" placeholder="Nom (ex. 3APIC-2)" required>
+        <input class="form-control mb-2" name="niveau" placeholder="Niveau (ex. 3e année collège)">
+        <input class="form-control mb-2" name="anneeScolaire" placeholder="Année scolaire (ex. 2026-2027)">
+        <% if (user.role === 'admin') { %>
+        <select class="form-select mb-2" name="prof">
+          <% for (const p of profs) { %><option value="<%= p._id %>"><%= p.nom %> (<%= p.role %>)</option><% } %>
+        </select>
+        <% } %>
+        <button class="btn btn-primary w-100">Créer</button>
+      </form>
+    </div></div>
+  </div>
+</div>
+<%- include('../partials/footer') %>

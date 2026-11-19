@@ -1,0 +1,108 @@
+{% extends 'base.twig' %}
+{% block contenu %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+  <div>
+    <h1 class="h3 mb-0">Tableau de bord</h1>
+    <span class="text-muted"><a href="/controles/{{ controle.id }}">{{ controle.titre }}</a> · {{ controle.classe_nom }} · {{ controle.matiere }} · {{ controle.date|date_fr }}</span>
+  </div>
+  <div class="d-flex gap-2">
+    <a class="btn btn-outline-primary" href="/controles/{{ controle.id }}/evaluation"><i class="bi bi-check2-square"></i> Évaluation</a>
+    <button class="btn btn-outline-secondary" onclick="window.print()"><i class="bi bi-printer"></i> Imprimer</button>
+  </div>
+</div>
+{% if d.nb_evalues == 0 %}
+  <div class="alert alert-warning">Aucun élève évalué pour l'instant. <a href="/controles/{{ controle.id }}/evaluation">Commencez l'évaluation</a>.</div>
+{% else %}
+<div class="row g-3 mb-3">
+  <div class="col-6 col-md-2"><div class="card stat h-100"><div class="card-body"><div class="libelle">Élèves évalués</div><div class="valeur">{{ d.nb_evalues }}/{{ d.nb_eleves }}</div></div></div></div>
+  <div class="col-6 col-md-2"><div class="card stat h-100"><div class="card-body"><div class="libelle">Compétences maîtrisées</div><div class="valeur text-success">{{ d.pct_maitrise_global|fmt }} %</div></div></div></div>
+  <div class="col-6 col-md-2"><div class="card stat h-100"><div class="card-body"><div class="libelle">Lacunes</div><div class="valeur text-danger">{{ d.pct_lacune_global|fmt }} %</div></div></div></div>
+  <div class="col-6 col-md-2"><div class="card stat h-100"><div class="card-body"><div class="libelle">Moyenne /{{ controle.note_sur|fmt }}</div><div class="valeur">{{ d.notes.moyenne|fmt }}</div></div></div></div>
+  <div class="col-6 col-md-2"><div class="card stat h-100"><div class="card-body"><div class="libelle">Min · Max</div><div class="valeur">{{ d.notes.min|fmt }} · {{ d.notes.max|fmt }}</div></div></div></div>
+  <div class="col-6 col-md-2"><div class="card stat h-100"><div class="card-body"><div class="libelle">Taux de réussite</div><div class="valeur">{{ d.notes.taux_reussite is null ? '—' : d.notes.taux_reussite|fmt ~ ' %' }}</div></div></div></div>
+</div>
+<div class="row g-3 mb-3">
+  <div class="col-lg-8"><div class="card h-100"><div class="card-body">
+    <h2 class="h6">Maîtrise par compétence</h2>
+    <div class="chart-box" style="height:{{ max(220, d.par_competence|length * 38) }}px"><canvas id="gComp"></canvas></div>
+  </div></div></div>
+  <div class="col-lg-4"><div class="card h-100"><div class="card-body">
+    <h2 class="h6">Répartition globale</h2>
+    <div class="chart-box" style="height:220px"><canvas id="gGlobal"></canvas></div>
+    <h2 class="h6 mt-3">Distribution des notes</h2>
+    <div class="chart-box" style="height:180px"><canvas id="gNotes"></canvas></div>
+  </div></div></div>
+</div>
+<div class="card mb-3"><div class="card-body">
+  <h2 class="h5"><i class="bi bi-diagram-3"></i> Groupes de besoin — élèves par compétence non maîtrisée</h2>
+  <p class="small text-muted">Chaque groupe rassemble les élèves qui n'ont pas maîtrisé la même compétence : base pour organiser la remédiation.</p>
+  {% if d.groupes is empty %}<p class="text-success mb-0">Toutes les compétences sont maîtrisées par tous les élèves évalués. 🎉</p>{% endif %}
+  <div class="row g-3">
+    {% for g in d.groupes %}
+    <div class="col-md-6 col-xl-4">
+      <div class="border rounded p-3 h-100 bg-white">
+        <div class="d-flex justify-content-between align-items-start">
+          <strong>{{ g.competence }}</strong>
+          <span class="badge bg-danger">{{ g.eleves|length }} élève(s) · {{ g.pct|fmt }} %</span>
+        </div>
+        {% if g.libre %}<small class="text-muted">Lacune ajoutée par le professeur</small>{% endif %}
+        <div class="progress my-2" style="height:6px"><div class="progress-bar bg-danger" style="width:{{ g.pct }}%"></div></div>
+        <div class="small">{% for e in g.eleves %}<a href="/eleves/{{ e.eleve_id }}">{{ e.nom }} {{ e.prenom }}</a>{{ not loop.last ? ', ' }}{% endfor %}</div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div></div>
+<div class="row g-3">
+  <div class="col-lg-6"><div class="card h-100"><div class="card-body">
+    <h2 class="h5"><i class="bi bi-people"></i> Profils — élèves ayant les mêmes lacunes</h2>
+    {% for p in d.profils %}
+      <div class="border-bottom py-2">
+        <div>{% if p.lacunes is empty %}<span class="ok-chip">Aucune lacune</span>{% else %}{% for l in p.lacunes %}<span class="lacune-chip">{{ l }}</span>{% endfor %}{% endif %}
+          <span class="badge bg-secondary ms-1">{{ p.eleves|length }}</span></div>
+        <div class="small text-muted">{% for e in p.eleves %}{{ e.nom }} {{ e.prenom }}{{ not loop.last ? ', ' }}{% endfor %}</div>
+      </div>
+    {% endfor %}
+  </div></div></div>
+  <div class="col-lg-6"><div class="card h-100"><div class="card-body">
+    <h2 class="h5"><i class="bi bi-list-ol"></i> Élèves</h2>
+    <div class="table-responsive"><table class="table table-sm align-middle">
+      <thead><tr><th>Élève</th><th>Note</th><th>Maîtrise</th><th>Lacunes</th></tr></thead>
+      <tbody>
+      {% for e in d.eleves %}
+        <tr><td><a href="/eleves/{{ e.eval.eleve_id }}">{{ e.eval.nom }} {{ e.eval.prenom }}</a></td><td>{{ e.eval.note|fmt }}</td>
+          <td><span class="badge bg-{{ couleur_pct(e.pct_maitrise) }}">{{ e.pct_maitrise|fmt }} %</span></td>
+          <td class="small">{{ e.lacunes|length }}</td></tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+  </div></div></div>
+</div>
+{% endif %}
+{% endblock %}
+{% block scripts %}
+{% if d.nb_evalues > 0 %}
+<script src="/assets/vendor/chart/chart.umd.js"></script>
+<script>
+  const pc = {{ d.par_competence|json_encode(constant('JSON_HEX_TAG'))|raw }};
+  new Chart(document.getElementById('gComp'), {
+    type: 'bar',
+    data: { labels: pc.map(c => c.competence), datasets: [
+      { label: 'Maîtrisée (%)', data: pc.map(c => c.pct_maitrise), backgroundColor: '#198754' },
+      { label: 'Lacune (%)', data: pc.map(c => c.pct_lacune), backgroundColor: '#dc3545' },
+    ] },
+    options: { indexAxis: 'y', maintainAspectRatio: false, scales: { x: { stacked: true, max: 100 }, y: { stacked: true } } }
+  });
+  new Chart(document.getElementById('gGlobal'), {
+    type: 'doughnut',
+    data: { labels: ['Maîtrisées', 'Lacunes'], datasets: [{ data: [{{ d.pct_maitrise_global }}, {{ d.pct_lacune_global }}], backgroundColor: ['#198754', '#dc3545'] }] },
+    options: { maintainAspectRatio: false, plugins: { tooltip: { callbacks: { label: c => c.label + ' : ' + c.raw + ' %' } } } }
+  });
+  const dn = {{ d.distribution|json_encode(constant('JSON_HEX_TAG'))|raw }};
+  new Chart(document.getElementById('gNotes'), {
+    type: 'bar', data: { labels: dn.labels, datasets: [{ label: 'Élèves', data: dn.valeurs, backgroundColor: '#0d6efd' }] },
+    options: { maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } }
+  });
+</script>
+{% endif %}
+{% endblock %}

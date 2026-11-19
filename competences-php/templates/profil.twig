@@ -1,0 +1,26 @@
+{% extends 'base.twig' %}
+{% block contenu %}
+<h1 class="h3 mb-3">Mon profil</h1>
+<div class="row">
+  <div class="col-md-6 col-lg-4">
+    <div class="card mb-3"><div class="card-body">
+      <p class="mb-1"><strong>{{ user.nom }}</strong></p>
+      <p class="mb-1 text-muted">{{ user.email }}</p>
+      <p class="mb-0">Rôle : {{ user.role == 'admin' ? 'Administrateur' : 'Professeur' }}</p>
+      {% if user.matieres %}<p class="mb-0">Matières : {{ user.matieres }}</p>{% endif %}
+    </div></div>
+  </div>
+  <div class="col-md-6 col-lg-4">
+    <div class="card"><div class="card-body">
+      <h2 class="h6">Changer le mot de passe</h2>
+      <form method="post" action="/profil">
+        {% include 'partials/csrf.twig' %}
+        <input class="form-control mb-2" type="password" name="actuel" placeholder="Mot de passe actuel" required>
+        <input class="form-control mb-2" type="password" name="nouveau" placeholder="Nouveau mot de passe" minlength="6" required>
+        <input class="form-control mb-2" type="password" name="confirmation" placeholder="Confirmation" minlength="6" required>
+        <button class="btn btn-primary">Enregistrer</button>
+      </form>
+    </div></div>
+  </div>
+</div>
+{% endblock %}

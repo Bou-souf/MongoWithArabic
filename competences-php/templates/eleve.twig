@@ -1,0 +1,110 @@
+{% extends 'base.twig' %}
+{% block contenu %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+  <div>
+    <h1 class="h3 mb-0">{{ eleve.nom }} {{ eleve.prenom }}</h1>
+    <span class="text-muted"><a href="/classes/{{ eleve.classe.id }}">{{ eleve.classe.nom }}</a> {{ eleve.code ? '· ' ~ eleve.code }}</span>
+  </div>
+  <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="collapse" data-bs-target="#editEleve"><i class="bi bi-pencil"></i> Modifier</button>
+</div>
+<div class="collapse mb-3" id="editEleve"><div class="card"><div class="card-body">
+  <form method="post" action="/eleves/{{ eleve.id }}" class="row g-2">
+    {% include 'partials/csrf.twig' %}
+    <div class="col-md-3"><input class="form-control" name="nom" value="{{ eleve.nom }}" required></div>
+    <div class="col-md-3"><input class="form-control" name="prenom" value="{{ eleve.prenom }}"></div>
+    <div class="col-md-3"><input class="form-control" name="code" value="{{ eleve.code }}" placeholder="Code Massar"></div>
+    <div class="col-md-3"><button class="btn btn-primary">Enregistrer</button></div>
+  </form>
+</div></div></div>
+{% set ouvertes = evo.lacunes|filter(l => l.statut == 'ouverte') %}
+{% set remediees = evo.lacunes|filter(l => l.statut == 'remediee') %}
+{% set alertes = ouvertes|filter(l => l.niveau_alerte > 0) %}
+<div class="row g-3 mb-3">
+  <div class="col-6 col-md-3"><div class="card stat"><div class="card-body"><div class="libelle">Contrôles</div><div class="valeur">{{ evo.lignes|length }}</div></div></div></div>
+  <div class="col-6 col-md-3"><div class="card stat"><div class="card-body"><div class="libelle">Lacunes ouvertes</div><div class="valeur text-warning">{{ ouvertes|length }}</div></div></div></div>
+  <div class="col-6 col-md-3"><div class="card stat"><div class="card-body"><div class="libelle">Lacunes remédiées</div><div class="valeur text-success">{{ remediees|length }}</div></div></div></div>
+  <div class="col-6 col-md-3"><div class="card stat"><div class="card-body"><div class="libelle">Alertes</div><div class="valeur text-danger">{{ alertes|length }}</div></div></div></div>
+</div>
+{% if alertes|length %}
+<div class="alert alert-danger"><i class="bi bi-exclamation-triangle-fill"></i> <strong>À remédier en priorité :</strong>
+  {% for l in alertes %}<span class="lacune-chip bg-white">{{ l.competence }} ({{ l.matiere }}, {{ l.echecs }}×)</span>{% endfor %}
+</div>
+{% endif %}
+<div class="row g-3">
+  <div class="col-lg-6"><div class="card h-100"><div class="card-body">
+    <h2 class="h6">Évolution des résultats</h2>
+    {% if evo.lignes is not empty %}<div class="chart-box"><canvas id="gEleve"></canvas></div>{% else %}<p class="text-muted">Aucun contrôle.</p>{% endif %}
+  </div></div></div>
+  <div class="col-lg-6"><div class="card h-100"><div class="card-body">
+    <h2 class="h6">Historique des contrôles</h2>
+    <div class="table-responsive"><table class="table table-sm align-middle">
+      <thead><tr><th>Date</th><th>Contrôle</th><th>Note</th><th>Maîtrise</th><th>Lacunes</th></tr></thead>
+      <tbody>
+      {% for l in evo.lignes %}
+        <tr>
+          <td>{{ l.controle.date|date_fr }}</td>
+          <td><a href="/controles/{{ l.controle.id }}/dashboard">{{ l.controle.titre }}</a><br><small class="text-muted">{{ l.controle.matiere }}</small></td>
+          <td>{{ l.note|fmt }}</td>
+          <td>{% if l.evaluee and l.pct_maitrise is not null %}<span class="badge bg-{{ couleur_pct(l.pct_maitrise) }}">{{ l.pct_maitrise|fmt }} %</span>{% else %}<span class="text-muted small">non évalué</span>{% endif %}</td>
+          <td>{% for x in l.lacunes %}<span class="lacune-chip">{{ x }}</span>{% endfor %}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+  </div></div></div>
+  <div class="col-12"><div class="card"><div class="card-body">
+    <h2 class="h6">Suivi des lacunes</h2>
+    {% if evo.lacunes is empty %}<p class="text-muted mb-0">Aucune lacune enregistrée.</p>{% else %}
+    <div class="table-responsive"><table class="table table-sm align-middle mb-0">
+      <thead><tr><th>Matière</th><th>Lacune</th><th>Détectée</th><th>Suivi</th><th>Statut</th><th></th></tr></thead>
+      <tbody>
+      {% for l in evo.lacunes %}
+        <tr class="{{ l.niveau_alerte == 2 ? 'table-danger' : (l.niveau_alerte == 1 ? 'table-warning') }}">
+          <td>{{ l.matiere }}</td>
+          <td>{{ l.competence }} {% if l.origine == 'professeur' %}<span class="badge bg-light text-dark border">ajoutée par le prof</span>{% endif %}</td>
+          <td class="small">{{ l.origine_titre }}<br><span class="text-muted">{{ (l.origine_date ?: l.created_at)|date_fr }}</span></td>
+          <td class="small">
+            {% for s in l.suivis %}<div>{{ s.remediee ? '✅' : '❌' }} {{ s.controle_titre ?: 'confirmation manuelle' }} <span class="text-muted">({{ s.date|date_fr }})</span></div>{% endfor %}
+            {% if l.suivis is empty %}<span class="text-muted">En attente du prochain contrôle</span>{% endif %}
+          </td>
+          <td>
+            {% if l.statut == 'remediee' %}<span class="badge bg-success">Remédiée le {{ l.date_remediation|date_fr }}</span>
+            {% elseif l.niveau_alerte %}<span class="badge bg-danger">Alerte</span>
+            {% else %}<span class="badge bg-warning text-dark">Ouverte</span>{% endif %}
+          </td>
+          <td class="text-nowrap">
+            <form method="post" action="/eleves/{{ eleve.id }}/lacunes/{{ l.id }}" class="d-inline">
+              {% include 'partials/csrf.twig' %}
+              {% if l.statut == 'ouverte' %}
+                <button name="action" value="remediee" class="btn btn-sm btn-outline-success" title="Confirmer la remédiation"><i class="bi bi-check2"></i></button>
+                <button name="action" value="non_remediee" class="btn btn-sm btn-outline-danger" title="Toujours non remédiée"><i class="bi bi-x"></i></button>
+              {% else %}
+                <button name="action" value="rouvrir" class="btn btn-sm btn-outline-secondary" title="Rouvrir"><i class="bi bi-arrow-counterclockwise"></i></button>
+              {% endif %}
+              <button name="action" value="supprimer" class="btn btn-sm btn-link text-danger" onclick="return confirm('Supprimer cette lacune ?')" title="Supprimer"><i class="bi bi-trash"></i></button>
+            </form>
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+    {% endif %}
+  </div></div></div>
+</div>
+{% endblock %}
+{% block scripts %}
+{% if graph is not empty %}
+<script src="/assets/vendor/chart/chart.umd.js"></script>
+<script>
+  const L = {{ graph|json_encode(constant('JSON_HEX_TAG'))|raw }};
+  new Chart(document.getElementById('gEleve'), {
+    type: 'line',
+    data: { labels: L.map(x => x.t), datasets: [
+      { label: 'Note (/20)', data: L.map(x => x.n), borderColor: '#0d6efd', yAxisID: 'y', tension: .3, spanGaps: true },
+      { label: 'Maîtrise (%)', data: L.map(x => x.p), borderColor: '#198754', yAxisID: 'y1', tension: .3, spanGaps: true },
+    ] },
+    options: { maintainAspectRatio: false, scales: { y: { min: 0, max: 20, position: 'left' }, y1: { min: 0, max: 100, position: 'right', grid: { drawOnChartArea: false } } } }
+  });
+</script>
+{% endif %}
+{% endblock %}

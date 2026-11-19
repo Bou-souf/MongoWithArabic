@@ -1,0 +1,97 @@
+{% extends 'base.twig' %}
+{% block contenu %}
+<h1 class="h3 mb-3">Statistiques et évolution</h1>
+{% if not classe %}
+  <p class="text-muted">Aucune classe. <a href="/classes">Créer une classe</a>.</p>
+{% else %}
+<form class="row g-2 mb-4" method="get">
+  <div class="col-auto">
+    <select class="form-select" name="classe" onchange="this.form.matiere.value='';this.form.submit()">
+      {% for c in classes %}<option value="{{ c.id }}" {{ c.id == classe.id ? 'selected' }}>{{ c.nom }}</option>{% endfor %}
+    </select>
+  </div>
+  <div class="col-auto">
+    <select class="form-select" name="matiere" onchange="this.form.submit()">
+      {% for m in matieres %}<option {{ m == matiere ? 'selected' }}>{{ m }}</option>{% endfor %}
+    </select>
+  </div>
+</form>
+{% if evolution.controles is empty %}
+  <p class="text-muted">Aucun contrôle pour cette classe.</p>
+{% else %}
+<div class="row g-3 mb-3">
+  <div class="col-6 col-md-3"><div class="card stat"><div class="card-body"><div class="libelle">Contrôles</div><div class="valeur">{{ evolution.controles|length }}</div></div></div></div>
+  <div class="col-6 col-md-3"><div class="card stat"><div class="card-body"><div class="libelle">Lacunes ouvertes</div><div class="valeur text-warning">{{ evolution.lacunes.ouvertes }}</div></div></div></div>
+  <div class="col-6 col-md-3"><div class="card stat"><div class="card-body"><div class="libelle">Lacunes remédiées</div><div class="valeur text-success">{{ evolution.lacunes.remediees }}</div></div></div></div>
+  <div class="col-6 col-md-3"><div class="card stat"><div class="card-body"><div class="libelle">En alerte</div><div class="valeur text-danger">{{ evolution.lacunes.alertes }}</div></div></div></div>
+</div>
+<div class="row g-3">
+  <div class="col-lg-6"><div class="card"><div class="card-body">
+    <h2 class="h6">Moyenne et taux de réussite par contrôle</h2>
+    <div class="chart-box"><canvas id="gNotes"></canvas></div>
+  </div></div></div>
+  <div class="col-lg-6"><div class="card"><div class="card-body">
+    <h2 class="h6">Taux de maîtrise des compétences par contrôle</h2>
+    <div class="chart-box"><canvas id="gMaitrise"></canvas></div>
+  </div></div></div>
+  <div class="col-12"><div class="card"><div class="card-body">
+    <h2 class="h6">Détail par contrôle</h2>
+    <div class="table-responsive"><table class="table table-sm align-middle">
+      <thead><tr><th>Date</th><th>Contrôle</th><th>Évalués</th><th>Moyenne</th><th>Min</th><th>Max</th><th>Réussite</th><th>Maîtrise</th><th></th></tr></thead>
+      <tbody>
+      {% for l in evolution.controles %}
+        <tr>
+          <td>{{ l.controle.date|date_fr }}</td><td>{{ l.controle.titre }}</td><td>{{ l.nb_evalues }}</td>
+          <td>{{ l.moyenne|fmt }}</td><td>{{ l.min|fmt }}</td><td>{{ l.max|fmt }}</td>
+          <td>{{ l.taux_reussite is null ? '—' : l.taux_reussite|fmt ~ ' %' }}</td>
+          <td><span class="badge bg-{{ couleur_pct(l.pct_maitrise) }}">{{ l.pct_maitrise|fmt }} %</span></td>
+          <td><a href="/controles/{{ l.controle.id }}/dashboard" class="btn btn-sm btn-outline-success"><i class="bi bi-bar-chart"></i></a></td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+  </div></div></div>
+  {% if evolution.competences is not empty %}
+  <div class="col-12"><div class="card"><div class="card-body">
+    <h2 class="h6">Évolution du taux de maîtrise par compétence</h2>
+    <div class="table-responsive"><table class="table table-sm">
+      <thead><tr><th>Compétence</th>{% for l in evolution.controles %}<th class="text-center small">{{ l.controle.titre }}</th>{% endfor %}<th class="text-center">Tendance</th></tr></thead>
+      <tbody>
+      {% for c in evolution.competences %}
+        <tr><td>{{ c.competence }}</td>
+        {% for l in evolution.controles %}
+          <td class="text-center">{% if c.points[l.controle.id] is defined %}<span class="badge bg-{{ couleur_pct(c.points[l.controle.id]) }}">{{ c.points[l.controle.id]|fmt }} %</span>{% else %}<span class="text-muted">·</span>{% endif %}</td>
+        {% endfor %}
+        <td class="text-center">{% if c.tendance is not null %}
+          <span class="{{ c.tendance > 0 ? 'text-success' : (c.tendance < 0 ? 'text-danger' : 'text-muted') }}"><i class="bi bi-arrow-{{ c.tendance > 0 ? 'up' : (c.tendance < 0 ? 'down' : 'right') }}"></i> {{ c.tendance > 0 ? '+' }}{{ c.tendance|fmt }} pts</span>
+        {% else %}<span class="text-muted">—</span>{% endif %}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+  </div></div></div>
+  {% endif %}
+</div>
+{% endif %}
+{% endif %}
+{% endblock %}
+{% block scripts %}
+{% if graph is not empty %}
+<script src="/assets/vendor/chart/chart.umd.js"></script>
+<script>
+  const evo = {{ graph|json_encode(constant('JSON_HEX_TAG'))|raw }};
+  new Chart(document.getElementById('gNotes'), {
+    data: { labels: evo.map(e => e.t), datasets: [
+      { type: 'line', label: 'Moyenne', data: evo.map(e => e.m), yAxisID: 'y', borderColor: '#0d6efd', backgroundColor: '#0d6efd', tension: .3 },
+      { type: 'bar', label: 'Taux de réussite (%)', data: evo.map(e => e.r), yAxisID: 'y1', backgroundColor: 'rgba(25,135,84,.35)' },
+    ] },
+    options: { maintainAspectRatio: false, scales: { y: { beginAtZero: true, suggestedMax: 20, position: 'left', title: { display: true, text: 'Moyenne' } }, y1: { beginAtZero: true, max: 100, position: 'right', grid: { drawOnChartArea: false } } } }
+  });
+  new Chart(document.getElementById('gMaitrise'), {
+    type: 'line',
+    data: { labels: evo.map(e => e.t), datasets: [{ label: 'Compétences maîtrisées (%)', data: evo.map(e => e.p), borderColor: '#198754', backgroundColor: 'rgba(25,135,84,.15)', fill: true, tension: .3 }] },
+    options: { maintainAspectRatio: false, scales: { y: { beginAtZero: true, max: 100 } } }
+  });
+</script>
+{% endif %}
+{% endblock %}

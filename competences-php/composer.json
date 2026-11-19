@@ -1,0 +1,28 @@
+{
+    "name": "bou-souf/competences-php",
+    "description": "Analyse des contrôles PDF, suivi des compétences et des lacunes des élèves (Slim 4 + MySQL)",
+    "type": "project",
+    "license": "proprietary",
+    "require": {
+        "php": ">=8.1",
+        "ext-mbstring": "*",
+        "ext-pdo": "*",
+        "anthropic-ai/sdk": "^1.11",
+        "guzzlehttp/guzzle": "^8.5",
+        "phpoffice/phpspreadsheet": "^3.8",
+        "slim/psr7": "^1.7",
+        "slim/slim": "^4.14",
+        "smalot/pdfparser": "^2.11",
+        "twig/twig": "^3.14"
+    },
+    "suggest": {
+        "anthropic-ai/sdk": "Analyse avancée des PDF par l'IA Claude"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^10.5"
+    },
+    "autoload": { "psr-4": { "App\\": "src/" } },
+    "autoload-dev": { "psr-4": { "Tests\\": "tests/" } },
+    "config": { "platform": { "php": "8.1.0" }, "sort-packages": true },
+    "scripts": { "test": "phpunit" }
+}

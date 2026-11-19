@@ -1,0 +1,81 @@
+<%- include('partials/header') %>
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+  <h1 class="h3 mb-0">Bonjour <%= user.nom %></h1>
+  <div class="d-flex gap-2">
+    <a class="btn btn-primary" href="/controles/nouveau"><i class="bi bi-upload"></i> Analyser un contrôle PDF</a>
+    <a class="btn btn-outline-primary" href="/classes"><i class="bi bi-people"></i> Gérer les classes</a>
+  </div>
+</div>
+<div class="row g-3 mb-4">
+  <% const cartes = [
+    ['Classes', stats.classes, 'people', 'primary', '/classes'],
+    ['Élèves', stats.eleves, 'person', 'primary', '/classes'],
+    ['Contrôles', stats.controles, 'file-earmark-text', 'primary', '/controles'],
+    ['Lacunes ouvertes', stats.lacunesOuvertes, 'hourglass-split', 'warning', '/alertes'],
+    ['Lacunes remédiées', stats.lacunesRemediees, 'check2-circle', 'success', '/statistiques'],
+    ['Alertes', stats.alertes, 'exclamation-triangle', 'danger', '/alertes'],
+  ]; %>
+  <% for (const [lib, val, ic, col, href] of cartes) { %>
+  <div class="col-6 col-md-4 col-xl-2">
+    <a href="<%= href %>" class="text-decoration-none text-reset">
+      <div class="card stat h-100"><div class="card-body">
+        <div class="libelle"><i class="bi bi-<%= ic %> text-<%= col %>"></i> <%= lib %></div>
+        <div class="valeur text-<%= col %>"><%= val %></div>
+      </div></div>
+    </a>
+  </div>
+  <% } %>
+</div>
+
+<div class="row g-3">
+  <div class="col-lg-8">
+    <div class="card"><div class="card-body">
+      <h2 class="h5">Derniers contrôles</h2>
+      <% if (!controles.length) { %>
+        <p class="text-muted mb-0">Aucun contrôle pour l'instant. <a href="/controles/nouveau">Analysez votre premier contrôle</a>.</p>
+      <% } else { %>
+      <div class="table-responsive">
+      <table class="table table-sm align-middle mb-0">
+        <thead><tr><th>Date</th><th>Contrôle</th><th>Classe</th><th>Matière</th><th>Évaluation</th><th></th></tr></thead>
+        <tbody>
+        <% for (const c of controles) { const p = progression[c._id]; %>
+          <tr>
+            <td><%= fmtDate(c.date) %></td>
+            <td><a href="/controles/<%= c._id %>"><%= c.titre %></a></td>
+            <td><%= c.classe ? c.classe.nom : '' %></td>
+            <td><%= c.matiere %></td>
+            <td>
+              <% if (p.t) { %>
+              <div class="progress" style="height:8px;min-width:80px" title="<%= p.n %>/<%= p.t %>">
+                <div class="progress-bar <%= p.n === p.t ? 'bg-success' : '' %>" style="width:<%= Math.round(p.n / p.t * 100) %>%"></div>
+              </div>
+              <small class="text-muted"><%= p.n %>/<%= p.t %> élèves</small>
+              <% } else { %><small class="text-muted">Aucun élève</small><% } %>
+            </td>
+            <td class="text-end text-nowrap">
+              <a class="btn btn-sm btn-outline-primary" href="/controles/<%= c._id %>/evaluation" title="Évaluer"><i class="bi bi-check2-square"></i></a>
+              <a class="btn btn-sm btn-outline-success" href="/controles/<%= c._id %>/dashboard" title="Tableau de bord"><i class="bi bi-bar-chart"></i></a>
+            </td>
+          </tr>
+        <% } %>
+        </tbody>
+      </table>
+      </div>
+      <% } %>
+    </div></div>
+  </div>
+  <div class="col-lg-4">
+    <div class="card"><div class="card-body">
+      <h2 class="h5">Démarche</h2>
+      <ol class="small mb-0">
+        <li>Créez une <a href="/classes">classe</a>.</li>
+        <li><a href="/controles/nouveau">Déposez le contrôle PDF</a> : les compétences de chaque question sont extraites automatiquement ; ajustez-les si besoin.</li>
+        <li>Importez le fichier Excel des notes : la liste des élèves est créée.</li>
+        <li>Cochez les compétences maîtrisées par chaque élève et ajoutez les lacunes non proposées.</li>
+        <li>Confirmez la remédiation des lacunes des contrôles précédents.</li>
+        <li>Consultez le tableau de bord, les groupes de besoin, les statistiques et les alertes.</li>
+      </ol>
+    </div></div>
+  </div>
+</div>
+<%- include('partials/footer') %>

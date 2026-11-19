@@ -1,0 +1,78 @@
+{% extends 'base.twig' %}
+{% block contenu %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+  <div>
+    <h1 class="h3 mb-0">{{ classe.nom }}</h1>
+    <span class="text-muted">{{ classe.niveau }} {{ classe.annee_scolaire ? '· ' ~ classe.annee_scolaire }} · Prof : {{ classe.prof_nom }}</span>
+  </div>
+  <div class="d-flex gap-2">
+    <a class="btn btn-primary" href="/controles/nouveau?classe={{ classe.id }}"><i class="bi bi-upload"></i> Nouveau contrôle</a>
+    <a class="btn btn-outline-primary" href="/statistiques?classe={{ classe.id }}"><i class="bi bi-graph-up"></i> Statistiques</a>
+  </div>
+</div>
+<div class="row g-3">
+  <div class="col-lg-7">
+    <div class="card"><div class="card-body">
+      <h2 class="h5">Élèves ({{ eleves|length }})</h2>
+      {% if eleves is empty %}<p class="text-muted">Aucun élève : importez un fichier Excel ou ajoutez-les manuellement.</p>{% else %}
+      <div class="table-responsive"><table class="table table-sm align-middle">
+        <thead><tr><th>Nom</th><th>Prénom</th><th>Code</th><th>Lacunes ouvertes</th><th></th></tr></thead>
+        <tbody>
+        {% for e in eleves %}{% set s = par_eleve[e.id] ?? {ouvertes: 0, alertes: 0} %}
+          <tr>
+            <td><a href="/eleves/{{ e.id }}">{{ e.nom }}</a></td><td>{{ e.prenom }}</td><td class="small text-muted">{{ e.code }}</td>
+            <td>{{ s.ouvertes }} {% if s.alertes %}<span class="badge bg-danger"><i class="bi bi-exclamation-triangle"></i> {{ s.alertes }}</span>{% endif %}</td>
+            <td class="text-end">
+              <form method="post" action="/classes/{{ classe.id }}/eleves/{{ e.id }}/supprimer" class="d-inline" onsubmit="return confirm('Supprimer cet élève et tout son historique ?')">
+                {% include 'partials/csrf.twig' %}<button class="btn btn-sm btn-link text-danger p-0"><i class="bi bi-trash"></i></button>
+              </form>
+            </td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table></div>
+      {% endif %}
+    </div></div>
+  </div>
+  <div class="col-lg-5">
+    <div class="card mb-3"><div class="card-body">
+      <h2 class="h6">Importer des élèves (Excel / CSV)</h2>
+      <form method="post" action="/classes/{{ classe.id }}/import" enctype="multipart/form-data" class="d-flex gap-2">
+        {% include 'partials/csrf.twig' %}
+        <input class="form-control" type="file" name="fichier" accept=".xlsx,.xls,.csv,.ods" required>
+        <button class="btn btn-outline-primary">Importer</button>
+      </form>
+      <small class="text-muted">Colonnes reconnues : Nom, Prénom (ou « Nom et prénom »), Code/Massar.</small>
+    </div></div>
+    <div class="card mb-3"><div class="card-body">
+      <h2 class="h6">Ajouter un élève</h2>
+      <form method="post" action="/classes/{{ classe.id }}/eleves" class="row g-2">
+        {% include 'partials/csrf.twig' %}
+        <div class="col-6"><input class="form-control" name="nom" placeholder="Nom" required></div>
+        <div class="col-6"><input class="form-control" name="prenom" placeholder="Prénom"></div>
+        <div class="col-8"><input class="form-control" name="code" placeholder="Code Massar (facultatif)"></div>
+        <div class="col-4"><button class="btn btn-outline-primary w-100">Ajouter</button></div>
+      </form>
+    </div></div>
+    <div class="card mb-3"><div class="card-body">
+      <h2 class="h6">Contrôles ({{ controles|length }})</h2>
+      <ul class="list-unstyled mb-0">
+        {% for c in controles %}<li><a href="/controles/{{ c.id }}">{{ c.titre }}</a> <small class="text-muted">{{ c.matiere }} · {{ c.date|date_fr }}</small></li>{% endfor %}
+      </ul>
+    </div></div>
+    {% if user.role == 'admin' %}
+    <div class="card mb-3"><div class="card-body">
+      <h2 class="h6">Affecter à un professeur</h2>
+      <form method="post" action="/admin/classes/{{ classe.id }}/prof" class="d-flex gap-2">
+        {% include 'partials/csrf.twig' %}
+        <select class="form-select" name="prof">{% for p in profs %}<option value="{{ p.id }}" {{ p.id == classe.prof_id ? 'selected' }}>{{ p.nom }}</option>{% endfor %}</select>
+        <button class="btn btn-outline-primary">Affecter</button>
+      </form>
+    </div></div>
+    {% endif %}
+    <form method="post" action="/classes/{{ classe.id }}/supprimer" onsubmit="return confirm('Supprimer définitivement cette classe ?')">
+      {% include 'partials/csrf.twig' %}<button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i> Supprimer la classe</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

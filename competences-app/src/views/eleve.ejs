@@ -1,0 +1,111 @@
+<%- include('partials/header') %>
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+  <div>
+    <h1 class="h3 mb-0"><%= eleve.nom %> <%= eleve.prenom %></h1>
+    <span class="text-muted"><a href="/classes/<%= classe._id %>"><%= classe.nom %></a> <%= eleve.code ? '· ' + eleve.code : '' %></span>
+  </div>
+  <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="collapse" data-bs-target="#editEleve"><i class="bi bi-pencil"></i> Modifier</button>
+</div>
+<div class="collapse mb-3" id="editEleve"><div class="card"><div class="card-body">
+  <form method="post" action="/eleves/<%= eleve._id %>" class="row g-2">
+    <%- include('partials/csrf') %>
+    <div class="col-md-3"><input class="form-control" name="nom" value="<%= eleve.nom %>" required></div>
+    <div class="col-md-3"><input class="form-control" name="prenom" value="<%= eleve.prenom %>"></div>
+    <div class="col-md-3"><input class="form-control" name="code" value="<%= eleve.code || '' %>" placeholder="Code Massar"></div>
+    <div class="col-md-3"><button class="btn btn-primary">Enregistrer</button></div>
+  </form>
+</div></div></div>
+
+<% const ouvertes = evo.lacunes.filter(l => l.statut === 'ouverte'); const remediees = evo.lacunes.filter(l => l.statut === 'remediee'); const alertes = ouvertes.filter(l => l.niveauAlerte > 0); %>
+<div class="row g-3 mb-3">
+  <div class="col-6 col-md-3"><div class="card stat"><div class="card-body"><div class="libelle">Contrôles</div><div class="valeur"><%= evo.lignes.length %></div></div></div></div>
+  <div class="col-6 col-md-3"><div class="card stat"><div class="card-body"><div class="libelle">Lacunes ouvertes</div><div class="valeur text-warning"><%= ouvertes.length %></div></div></div></div>
+  <div class="col-6 col-md-3"><div class="card stat"><div class="card-body"><div class="libelle">Lacunes remédiées</div><div class="valeur text-success"><%= remediees.length %></div></div></div></div>
+  <div class="col-6 col-md-3"><div class="card stat"><div class="card-body"><div class="libelle">Alertes</div><div class="valeur text-danger"><%= alertes.length %></div></div></div></div>
+</div>
+
+<% if (alertes.length) { %>
+<div class="alert alert-danger"><i class="bi bi-exclamation-triangle-fill"></i> <strong>À remédier en priorité :</strong>
+  <% for (const l of alertes) { %><span class="lacune-chip bg-white"><%= l.competence %> (<%= l.matiere %>, <%= l.echecs %>×)</span><% } %>
+</div>
+<% } %>
+
+<div class="row g-3">
+  <div class="col-lg-6"><div class="card h-100"><div class="card-body">
+    <h2 class="h6">Évolution des résultats</h2>
+    <% if (evo.lignes.length) { %><div class="chart-box"><canvas id="gEleve"></canvas></div><% } else { %><p class="text-muted">Aucun contrôle.</p><% } %>
+  </div></div></div>
+  <div class="col-lg-6"><div class="card h-100"><div class="card-body">
+    <h2 class="h6">Historique des contrôles</h2>
+    <div class="table-responsive"><table class="table table-sm align-middle">
+      <thead><tr><th>Date</th><th>Contrôle</th><th>Note</th><th>Maîtrise</th><th>Lacunes</th></tr></thead>
+      <tbody>
+      <% for (const l of evo.lignes) { %>
+        <tr>
+          <td><%= fmtDate(l.controle.date) %></td>
+          <td><a href="/controles/<%= l.controle._id %>/dashboard"><%= l.controle.titre %></a><br><small class="text-muted"><%= l.controle.matiere %></small></td>
+          <td><%= fmt(l.note) %></td>
+          <td><% if (l.evaluee && l.pctMaitrise !== null) { %><span class="badge bg-<%= couleurPct(l.pctMaitrise) %>"><%= fmt(l.pctMaitrise) %> %</span><% } else { %><span class="text-muted small">non évalué</span><% } %></td>
+          <td><% for (const x of l.lacunes) { %><span class="lacune-chip"><%= x %></span><% } %></td>
+        </tr>
+      <% } %>
+      </tbody>
+    </table></div>
+  </div></div></div>
+
+  <div class="col-12"><div class="card"><div class="card-body">
+    <h2 class="h6">Suivi des lacunes</h2>
+    <% if (!evo.lacunes.length) { %><p class="text-muted mb-0">Aucune lacune enregistrée.</p><% } else { %>
+    <div class="table-responsive"><table class="table table-sm align-middle mb-0">
+      <thead><tr><th>Matière</th><th>Lacune</th><th>Détectée</th><th>Suivi</th><th>Statut</th><th></th></tr></thead>
+      <tbody>
+      <% for (const l of evo.lacunes) { %>
+        <tr class="<%= l.niveauAlerte === 2 ? 'table-danger' : l.niveauAlerte === 1 ? 'table-warning' : '' %>">
+          <td><%= l.matiere %></td>
+          <td><%= l.competence %> <% if (l.origine === 'professeur') { %><span class="badge bg-light text-dark border">ajoutée par le prof</span><% } %></td>
+          <td class="small"><%= l.controleOrigine ? l.controleOrigine.titre : '' %><br><span class="text-muted"><%= fmtDate(l.controleOrigine ? l.controleOrigine.date : l.createdAt) %></span></td>
+          <td class="small">
+            <% for (const s of l.suivis) { %>
+              <div><%= s.remediee ? '✅' : '❌' %> <%= s.controle ? s.controle.titre : 'confirmation manuelle' %> <span class="text-muted">(<%= fmtDate(s.controle ? s.controle.date : s.date) %>)</span></div>
+            <% } %>
+            <% if (!l.suivis.length) { %><span class="text-muted">En attente du prochain contrôle</span><% } %>
+          </td>
+          <td>
+            <% if (l.statut === 'remediee') { %><span class="badge bg-success">Remédiée le <%= fmtDate(l.dateRemediation) %></span>
+            <% } else if (l.niveauAlerte) { %><span class="badge bg-danger">Alerte</span>
+            <% } else { %><span class="badge bg-warning text-dark">Ouverte</span><% } %>
+          </td>
+          <td class="text-nowrap">
+            <form method="post" action="/eleves/<%= eleve._id %>/lacunes/<%= l._id %>" class="d-inline">
+              <%- include('partials/csrf') %>
+              <% if (l.statut === 'ouverte') { %>
+                <button name="action" value="remediee" class="btn btn-sm btn-outline-success" title="Confirmer la remédiation"><i class="bi bi-check2"></i></button>
+                <button name="action" value="non_remediee" class="btn btn-sm btn-outline-danger" title="Toujours non remédiée"><i class="bi bi-x"></i></button>
+              <% } else { %>
+                <button name="action" value="rouvrir" class="btn btn-sm btn-outline-secondary" title="Rouvrir"><i class="bi bi-arrow-counterclockwise"></i></button>
+              <% } %>
+              <button name="action" value="supprimer" class="btn btn-sm btn-link text-danger" onclick="return confirm('Supprimer cette lacune ?')" title="Supprimer"><i class="bi bi-trash"></i></button>
+            </form>
+          </td>
+        </tr>
+      <% } %>
+      </tbody>
+    </table></div>
+    <% } %>
+  </div></div></div>
+</div>
+<% if (evo.lignes.length) { %>
+<script src="/vendor/chart.js/chart.umd.js"></script>
+<script>
+  const L = <%- JSON.stringify(evo.lignes.map(l => ({ t: l.controle.titre, n: typeof l.note === 'number' ? Math.round(l.note / (l.controle.noteSur || 20) * 2000) / 100 : null, p: l.evaluee ? l.pctMaitrise : null }))).replace(/</g, '\\u003c') %>;
+  new Chart(document.getElementById('gEleve'), {
+    type: 'line',
+    data: { labels: L.map(x => x.t), datasets: [
+      { label: 'Note (/20)', data: L.map(x => x.n), borderColor: '#0d6efd', yAxisID: 'y', tension: .3, spanGaps: true },
+      { label: 'Maîtrise (%)', data: L.map(x => x.p), borderColor: '#198754', yAxisID: 'y1', tension: .3, spanGaps: true },
+    ] },
+    options: { maintainAspectRatio: false, scales: { y: { min: 0, max: 20, position: 'left' }, y1: { min: 0, max: 100, position: 'right', grid: { drawOnChartArea: false } } } }
+  });
+</script>
+<% } %>
+<%- include('partials/footer') %>

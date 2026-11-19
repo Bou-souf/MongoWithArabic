@@ -1,0 +1,32 @@
+{% extends 'base.twig' %}
+{% block contenu %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+  <h1 class="h3 mb-0">Contrôles</h1>
+  <a class="btn btn-primary" href="/controles/nouveau"><i class="bi bi-upload"></i> Nouveau contrôle</a>
+</div>
+<form class="row g-2 mb-3" method="get">
+  <div class="col-auto"><select class="form-select" name="classe" onchange="this.form.submit()"><option value="">Toutes les classes</option>{% for c in classes %}<option value="{{ c.id }}" {{ (q.classe ?? '') == c.id ? 'selected' }}>{{ c.nom }}</option>{% endfor %}</select></div>
+  <div class="col-auto"><select class="form-select" name="matiere" onchange="this.form.submit()"><option value="">Toutes les matières</option>{% for m in matieres %}<option {{ (q.matiere ?? '') == m ? 'selected' }}>{{ m }}</option>{% endfor %}</select></div>
+</form>
+<div class="card"><div class="card-body">
+  {% if controles is empty %}<p class="text-muted mb-0">Aucun contrôle.</p>{% else %}
+  <div class="table-responsive"><table class="table align-middle mb-0">
+    <thead><tr><th>Date</th><th>Titre</th><th>Classe</th><th>Matière</th><th>Questions</th><th>Compétences</th><th></th></tr></thead>
+    <tbody>
+    {% for c in controles %}
+      <tr>
+        <td>{{ c.date|date_fr }}</td>
+        <td><a href="/controles/{{ c.id }}" class="fw-semibold">{{ c.titre }}</a></td>
+        <td>{{ c.classe_nom }}</td><td>{{ c.matiere }}</td><td>{{ c.nb_questions }}</td><td>{{ c.nb_competences }}</td>
+        <td class="text-end text-nowrap">
+          <a class="btn btn-sm btn-outline-secondary" href="/controles/{{ c.id }}/competences" title="Compétences"><i class="bi bi-list-check"></i></a>
+          <a class="btn btn-sm btn-outline-primary" href="/controles/{{ c.id }}/evaluation" title="Évaluer"><i class="bi bi-check2-square"></i></a>
+          <a class="btn btn-sm btn-outline-success" href="/controles/{{ c.id }}/dashboard" title="Tableau de bord"><i class="bi bi-bar-chart"></i></a>
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  {% endif %}
+</div></div>
+{% endblock %}

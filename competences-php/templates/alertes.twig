@@ -1,0 +1,41 @@
+{% extends 'base.twig' %}
+{% block contenu %}
+<h1 class="h3 mb-1">Alertes de remédiation</h1>
+<p class="text-muted">{{ nb_ouvertes }} lacune(s) ouverte(s). Une alerte est levée dès que vous confirmez, lors d'un contrôle suivant, qu'une lacune n'est <strong>pas remédiée</strong>.</p>
+<div class="card mb-4"><div class="card-body">
+  <h2 class="h5"><i class="bi bi-exclamation-octagon text-danger"></i> Lacunes non remédiées ({{ avec_alerte|length }})</h2>
+  {% if avec_alerte is empty %}<p class="text-muted mb-0">Aucune alerte. 👍</p>{% else %}
+  <div class="table-responsive"><table class="table table-sm align-middle mb-0">
+    <thead><tr><th>Priorité</th><th>Élève</th><th>Classe</th><th>Matière</th><th>Lacune</th><th>Depuis</th><th>Constats « non remédiée »</th><th>Actions</th></tr></thead>
+    <tbody>
+    {% for l in avec_alerte %}
+      <tr>
+        <td><span class="badge bg-{{ l.niveau_alerte == 2 ? 'danger' : 'warning text-dark' }}">{{ l.niveau_alerte == 2 ? 'Urgente' : 'À surveiller' }}</span></td>
+        <td><a href="/eleves/{{ l.eleve_id }}">{{ l.eleve_nom }} {{ l.eleve_prenom }}</a></td>
+        <td>{{ l.classe_nom }}</td><td>{{ l.matiere }}</td>
+        <td><span class="lacune-chip">{{ l.competence }}</span></td>
+        <td class="small">{{ l.origine_titre }}<br><span class="text-muted">{{ (l.origine_date ?: l.created_at)|date_fr }}</span></td>
+        <td class="small">{{ l.echecs }} × — {% for s in l.suivis|filter(s => not s.remediee) %}{{ s.controle_titre ?: s.date|date_fr }}{{ not loop.last ? ', ' }}{% endfor %}</td>
+        <td class="text-nowrap">
+          <form method="post" action="/eleves/{{ l.eleve_id }}/lacunes/{{ l.id }}" class="d-inline">
+            {% include 'partials/csrf.twig' %}<input type="hidden" name="retour" value="alertes">
+            <button name="action" value="remediee" class="btn btn-sm btn-outline-success"><i class="bi bi-check2"></i> Remédiée</button>
+          </form>
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  {% endif %}
+</div></div>
+<div class="card"><div class="card-body">
+  <h2 class="h5"><i class="bi bi-clock-history text-warning"></i> Lacunes ouvertes depuis plus de 30 jours sans suivi ({{ anciennes|length }})</h2>
+  {% if anciennes is empty %}<p class="text-muted mb-0">Aucune.</p>{% else %}
+  <ul class="list-unstyled mb-0">
+    {% for l in anciennes %}
+    <li class="mb-1"><a href="/eleves/{{ l.eleve_id }}">{{ l.eleve_nom }} {{ l.eleve_prenom }}</a> ({{ l.classe_nom }}, {{ l.matiere }}) — <span class="lacune-chip">{{ l.competence }}</span> <small class="text-muted">depuis le {{ l.created_at|date_fr }}</small></li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+</div></div>
+{% endblock %}

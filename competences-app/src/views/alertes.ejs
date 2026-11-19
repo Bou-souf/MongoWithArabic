@@ -1,0 +1,43 @@
+<%- include('partials/header') %>
+<h1 class="h3 mb-1">Alertes de remédiation</h1>
+<p class="text-muted"><%= nbOuvertes %> lacune(s) ouverte(s). Une alerte est levée dès que vous confirmez, lors d'un contrôle suivant, qu'une lacune n'est <strong>pas remédiée</strong>.</p>
+
+<div class="card mb-4"><div class="card-body">
+  <h2 class="h5"><i class="bi bi-exclamation-octagon text-danger"></i> Lacunes non remédiées (<%= avecAlerte.length %>)</h2>
+  <% if (!avecAlerte.length) { %><p class="text-muted mb-0">Aucune alerte. 👍</p><% } else { %>
+  <div class="table-responsive"><table class="table table-sm align-middle mb-0">
+    <thead><tr><th>Priorité</th><th>Élève</th><th>Classe</th><th>Matière</th><th>Lacune</th><th>Depuis</th><th>Constats « non remédiée »</th><th>Actions</th></tr></thead>
+    <tbody>
+    <% for (const l of avecAlerte) { %>
+      <tr>
+        <td><span class="badge bg-<%= l.niveauAlerte === 2 ? 'danger' : 'warning text-dark' %>"><%= l.niveauAlerte === 2 ? 'Urgente' : 'À surveiller' %></span></td>
+        <td><a href="/eleves/<%= l.eleve._id %>"><%= l.eleve.nom %> <%= l.eleve.prenom %></a></td>
+        <td><%= l.eleve.classe ? l.eleve.classe.nom : '' %></td>
+        <td><%= l.matiere %></td>
+        <td><span class="lacune-chip"><%= l.competence %></span></td>
+        <td class="small"><%= l.controleOrigine ? l.controleOrigine.titre : '' %><br><span class="text-muted"><%= fmtDate(l.controleOrigine ? l.controleOrigine.date : l.createdAt) %></span></td>
+        <td class="small"><%= l.echecs %> × — <%= l.suivis.filter(s => !s.remediee).map(s => s.controle ? s.controle.titre : fmtDate(s.date)).join(', ') %></td>
+        <td class="text-nowrap">
+          <form method="post" action="/eleves/<%= l.eleve._id %>/lacunes/<%= l._id %>" class="d-inline">
+            <%- include('partials/csrf') %><input type="hidden" name="retour" value="alertes">
+            <button name="action" value="remediee" class="btn btn-sm btn-outline-success" title="Marquer comme remédiée"><i class="bi bi-check2"></i> Remédiée</button>
+          </form>
+        </td>
+      </tr>
+    <% } %>
+    </tbody>
+  </table></div>
+  <% } %>
+</div></div>
+
+<div class="card"><div class="card-body">
+  <h2 class="h5"><i class="bi bi-clock-history text-warning"></i> Lacunes ouvertes depuis plus de 30 jours sans suivi (<%= anciennes.length %>)</h2>
+  <% if (!anciennes.length) { %><p class="text-muted mb-0">Aucune.</p><% } else { %>
+  <ul class="list-unstyled mb-0">
+    <% for (const l of anciennes) { %>
+    <li class="mb-1"><a href="/eleves/<%= l.eleve._id %>"><%= l.eleve.nom %> <%= l.eleve.prenom %></a> (<%= l.eleve.classe ? l.eleve.classe.nom : '' %>, <%= l.matiere %>) — <span class="lacune-chip"><%= l.competence %></span> <small class="text-muted">depuis le <%= fmtDate(l.createdAt) %></small></li>
+    <% } %>
+  </ul>
+  <% } %>
+</div></div>
+<%- include('partials/footer') %>
