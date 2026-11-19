@@ -1,0 +1,15 @@
+body { background: #f5f7fb; }
+.card { border: 0; box-shadow: 0 1px 3px rgba(16,24,40,.08); }
+.stat .valeur { font-size: 1.8rem; font-weight: 600; line-height: 1.1; }
+.stat .libelle { color: #6c757d; font-size: .85rem; }
+.grille th.comp { writing-mode: vertical-rl; transform: rotate(180deg); white-space: normal; height: 200px; min-width: 52px; font-weight: 500; font-size: .8rem; vertical-align: bottom; }
+.grille td, .grille th { vertical-align: middle; }
+.grille .form-check-input { width: 1.3em; height: 1.3em; cursor: pointer; }
+.grille tbody tr:hover { background: #eef3ff; }
+.table-sticky thead th { position: sticky; top: 0; background: #fff; z-index: 2; }
+.sticky-col { position: sticky; left: 0; background: #fff; z-index: 1; }
+.lacune-chip { display: inline-block; background: #fdecea; color: #b42318; border-radius: 1rem; padding: .1rem .6rem; font-size: .8rem; margin: .1rem; }
+.ok-chip { display: inline-block; background: #e7f6ec; color: #067647; border-radius: 1rem; padding: .1rem .6rem; font-size: .8rem; margin: .1rem; }
+.chart-box { position: relative; height: 300px; }
+.enonce { font-size: .85rem; color: #475467; }
+.table-warning-subtle > td { background: #fffaf0; }

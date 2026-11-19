@@ -1,0 +1,57 @@
+<%- include('../partials/header') %>
+<h1 class="h3 mb-3">Utilisateurs</h1>
+<div class="row g-3">
+  <div class="col-lg-8">
+    <div class="card"><div class="card-body">
+      <div class="table-responsive"><table class="table align-middle mb-0">
+        <thead><tr><th>Nom</th><th>Email</th><th>Rôle</th><th>Matières</th><th>Classes</th><th>Actif</th><th></th></tr></thead>
+        <tbody>
+        <% for (const u of users) { const moi = String(u._id) === String(user._id); %>
+          <tr>
+            <td><%= u.nom %> <% if (moi) { %><span class="badge bg-secondary">vous</span><% } %></td>
+            <td><%= u.email %></td>
+            <td><span class="badge bg-<%= u.role === 'admin' ? 'danger' : 'primary' %>"><%= u.role === 'admin' ? 'Admin' : 'Professeur' %></span></td>
+            <td class="small"><%= u.matieres.join(', ') %></td>
+            <td><%= nbClasses[u._id] || 0 %></td>
+            <td><%= u.actif ? 'Oui' : 'Non' %></td>
+            <td><button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#edit-<%= u._id %>"><i class="bi bi-pencil"></i></button></td>
+          </tr>
+          <tr class="collapse" id="edit-<%= u._id %>"><td colspan="7" class="bg-light">
+            <form method="post" action="/admin/utilisateurs/<%= u._id %>" class="row g-2 align-items-end">
+              <%- include('../partials/csrf') %>
+              <div class="col-md-3"><label class="form-label small">Nom</label><input class="form-control form-control-sm" name="nom" value="<%= u.nom %>"></div>
+              <div class="col-md-2"><label class="form-label small">Rôle</label>
+                <select class="form-select form-select-sm" name="role" <%= moi ? 'disabled' : '' %>>
+                  <option value="prof" <%= u.role === 'prof' ? 'selected' : '' %>>Professeur</option>
+                  <option value="admin" <%= u.role === 'admin' ? 'selected' : '' %>>Admin</option>
+                </select></div>
+              <div class="col-md-3"><label class="form-label small">Matières (séparées par des virgules)</label><input class="form-control form-control-sm" name="matieres" value="<%= u.matieres.join(', ') %>"></div>
+              <div class="col-md-2"><label class="form-label small">Nouveau mot de passe</label><input class="form-control form-control-sm" type="password" name="password" minlength="6"></div>
+              <div class="col-md-1 form-check ms-2"><input class="form-check-input" type="checkbox" name="actif" id="a<%= u._id %>" <%= u.actif ? 'checked' : '' %> <%= moi ? 'disabled' : '' %>><label class="form-check-label small" for="a<%= u._id %>">Actif</label></div>
+              <div class="col-12 d-flex gap-2">
+                <button class="btn btn-sm btn-primary">Enregistrer</button>
+                <% if (!moi) { %><button class="btn btn-sm btn-outline-danger" name="action" value="supprimer" onclick="return confirm('Supprimer ce compte ?')">Supprimer</button><% } %>
+              </div>
+            </form>
+          </td></tr>
+        <% } %>
+        </tbody>
+      </table></div>
+    </div></div>
+  </div>
+  <div class="col-lg-4">
+    <div class="card"><div class="card-body">
+      <h2 class="h5">Nouveau compte</h2>
+      <form method="post" action="/admin/utilisateurs">
+        <%- include('../partials/csrf') %>
+        <input class="form-control mb-2" name="nom" placeholder="Nom complet" required>
+        <input class="form-control mb-2" type="email" name="email" placeholder="Email" required>
+        <input class="form-control mb-2" type="password" name="password" placeholder="Mot de passe (6 caractères min.)" minlength="6" required>
+        <select class="form-select mb-2" name="role"><option value="prof">Professeur</option><option value="admin">Administrateur</option></select>
+        <input class="form-control mb-2" name="matieres" placeholder="Matières (ex. Mathématiques, Physique)">
+        <button class="btn btn-primary w-100">Créer</button>
+      </form>
+    </div></div>
+  </div>
+</div>
+<%- include('../partials/footer') %>

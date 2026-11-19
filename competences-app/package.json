@@ -1,0 +1,39 @@
+{
+  "name": "competences-app",
+  "version": "1.0.0",
+  "description": "Analyse des contrôles PDF, suivi des compétences et des lacunes des élèves",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "seed": "node scripts/seed.js",
+    "test": "node --test --test-concurrency=1 test/*.test.js",
+    "demo": "node scripts/demo-memoire.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^1.10.0",
+    "bcryptjs": "^3.0.3",
+    "bootstrap": "^5.3.3",
+    "bootstrap-icons": "^1.11.3",
+    "chart.js": "^4.4.1",
+    "connect-mongo": "^6.0.0",
+    "dotenv": "^18.0.10",
+    "ejs": "^7.0.2",
+    "express": "^5.3.0",
+    "express-session": "^1.19.0",
+    "method-override": "^3.0.0",
+    "mongoose": "^9.12.2",
+    "multer": "^2.5.0",
+    "pdf-parse": "^2.4.5",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "mongodb-memory-server": "^11.3.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
